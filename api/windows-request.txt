@@ -1,6 +1,4 @@
-Windows
-
-Invoke-WebRequest -Uri "http://localhost:8080/process" `
+Invoke-WebRequest -Uri "http://158.160.160.208:8080/process" `
     -Method POST `
     -Headers @{ "Content-Type" = "application/json" } `
     -Body (@{
