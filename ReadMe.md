@@ -41,9 +41,8 @@ curl -X POST http://localhost:8080/process \
 
 Пример успешного ответа:
 
-```
-MeetingPoint: X:2, Y:2
-```
+![image](https://github.com/user-attachments/assets/221ccc19-bbb3-4bcb-b463-0abf6d4b6c1e)
+
 
 ## Использование скриптов для запросов
 
@@ -73,6 +72,9 @@ sudo ./api/curl-command.sh
 1. Настройте IP-адрес и карту в `windows-request.txt`.
 
 2. Скопируйте команду и выполните её в командной строке (cmd) или PowerShell.
+Пример вывода:
+![image](https://github.com/user-attachments/assets/ed5b3cc7-e5ac-4f13-adb2-e06b176d307b)
+
 
 ## Ручной запуск программы без Docker
 
@@ -97,27 +99,9 @@ go run ./game/main.go -m [путь_до_карты]
 ```
 
 ### Пример вывода:
+![image](https://github.com/user-attachments/assets/20492d9e-7597-4abc-bcd8-3cfc73908718)
 
-```
-Карта загружена. Размер: 20x20
-Путь построен. Оптимальная точка сбора: X:10, Y:15
-```
+![image](https://github.com/user-attachments/assets/7d06381f-1bd2-42ab-aefd-7d28dcffde6a)
 
-## Остановка и удаление контейнера
 
-Чтобы остановить контейнер, выполните:
-
-```bash
-sudo docker stop pathfinder
-```
-
-Для удаления контейнера:
-
-```bash
-sudo docker rm pathfinder
-```
-
-## Лицензия
-
-Этот проект распространяется под лицензией MIT.
 
