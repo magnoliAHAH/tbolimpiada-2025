@@ -53,7 +53,7 @@ func extractIntersection(output string) string {
 	re := regexp.MustCompile(`Оптимальная точка сбора: \{X:(\d+) Y:(\d+)\}`)
 	match := re.FindStringSubmatch(output)
 	if len(match) == 3 {
-		return fmt.Sprintf("Intersection: X:%s, Y:%s", match[1], match[2])
+		return fmt.Sprintf("MeetingPoint: X:%s, Y:%s", match[1], match[2])
 	}
 	return "Intersection not found"
 }
