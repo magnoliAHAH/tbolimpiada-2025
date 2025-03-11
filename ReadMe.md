@@ -99,11 +99,11 @@ go run ./game/main.go -m [путь_до_карты]
 ```
 
 ### Пример вывода:
-![image](https://github.com/user-attachments/assets/20492d9e-7597-4abc-bcd8-3cfc73908718)
-Шапка вычислений с основными данными
+![image](https://github.com/user-attachments/assets/20492d9e-7597-4abc-bcd8-3cfc73908718)  
+Шапка вычислений с основными данными  
 
-![image](https://github.com/user-attachments/assets/7d06381f-1bd2-42ab-aefd-7d28dcffde6a)
-Отмечены пути, раскрашена карта
+![image](https://github.com/user-attachments/assets/7d06381f-1bd2-42ab-aefd-7d28dcffde6a)  
+Отмечены пути, раскрашена карта  
 
 
 ### Использованные технологии
