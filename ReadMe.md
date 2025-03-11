@@ -106,4 +106,14 @@ go run ./game/main.go -m [путь_до_карты]
 Отмечены пути, раскрашена карта
 
 
+### Использованные технологии
 
+Go (Golang) — https://golang.org
+
+Docker — https://www.docker.com
+
+cURL — https://curl.se
+
+Linux/Windows — поддержка различных ОС
+
+REST API — архитектурный стиль для взаимодействия сервисов
