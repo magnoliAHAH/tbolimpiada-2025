@@ -2,6 +2,8 @@ package main
 
 import (
 	"bufio"
+	"container/heap"
+	"flag"
 	"fmt"
 	"math"
 	"os"
@@ -30,43 +32,42 @@ var terrainColor = map[rune]string{
 	'W': "\033[36m",      // Вода (голубой)
 	'M': "\033[90m",      // Горы (серый)
 	'X': "\033[91m",      // Точка сбора (ярко-красный)
-	'1': "\033[97m",      // Герой 1
-	'2': "\033[97m",      // Герой 2
-	'3': "\033[97m",      // Герой 3
-	'4': "\033[97m",      // Герой 4
-	'5': "\033[97m",      // Герой 5
-	'6': "\033[97m",      // Герой 6
-	'7': "\033[97m",      // Герой 7
-	'8': "\033[97m",      // Герой 8
-	'9': "\033[97m",      // Герой 9
+	'B': "\033[97m",      // Белый цвет
 	'0': "\033[0m",       // Сброс цвета
-
 }
 
 func main() {
-	maze, heroes := readMaze("maze.txt")
+	mazePath := flag.String("m", "maze.txt", "Путь до файла с лабиринтом")
+	flag.Parse()
+
+	maze, heroes := readMaze(*mazePath)
 	fmt.Println("Лабиринт загружен")
 	fmt.Printf("Герои: %v\n", heroes)
 
 	meetingPoint := findOptimalMeetingPoint(maze, heroes)
 	fmt.Printf("Оптимальная точка сбора: %+v\n", meetingPoint)
 
+	paths := make([][]Point, len(heroes))
 	for i, hero := range heroes {
-		path := findPath(maze, hero, meetingPoint)
+		paths[i] = findPath(maze, hero, meetingPoint)
+		if paths[i] == nil {
+			fmt.Printf("Путь для героя %d не найден.\n", i+1)
+			continue
+		}
 		fmt.Printf("Путь героя %d до точки сбора:\n", i+1)
-		for _, p := range path {
+		for _, p := range paths[i] {
 			fmt.Printf("x:%d, y:%d\n", p.X, p.Y)
 		}
 		fmt.Println()
 	}
 
-	printMazeWithPaths(maze, heroes)
+	printMazeWithPaths(maze, heroes, paths)
 }
 
 func readMaze(filename string) ([][]rune, []Point) {
 	file, err := os.Open(filename)
 	if err != nil {
-		panic(err)
+		panic(fmt.Sprintf("Ошибка при открытии файла: %v", err))
 	}
 	defer file.Close()
 
@@ -75,6 +76,7 @@ func readMaze(filename string) ([][]rune, []Point) {
 	var width, height int
 	scanner.Scan()
 	fmt.Sscanf(scanner.Text(), "%d", &width)
+
 	scanner.Scan()
 	fmt.Sscanf(scanner.Text(), "%d", &height)
 
@@ -88,6 +90,7 @@ func readMaze(filename string) ([][]rune, []Point) {
 		for x, cell := range line {
 			if cell >= '1' && cell <= '9' {
 				heroes = append(heroes, Point{x, y})
+				terrainColor[cell] = fmt.Sprintf("\033[9%dm", cell-'0')
 			}
 		}
 	}
@@ -95,31 +98,34 @@ func readMaze(filename string) ([][]rune, []Point) {
 	return maze, heroes
 }
 
-func findOptimalMeetingPoint(maze [][]rune, heroes []Point) Point {
-	height, width := len(maze), len(maze[0])
-	bestPoint := Point{0, 0}
-	minTotalCost := math.Inf(1)
+func isValid(p Point, maze [][]rune) bool {
+	return p.Y >= 0 && p.Y < len(maze) && p.X >= 0 && p.X < len(maze[0]) && terrainCost[maze[p.Y][p.X]] != math.Inf(1)
+}
 
-	for y := 0; y < height; y++ {
-		for x := 0; x < width; x++ {
-			if !isValid(Point{x, y}, maze) {
+func findOptimalMeetingPoint(maze [][]rune, heroes []Point) Point {
+	minCost := math.Inf(1)
+	bestPoint := Point{0, 0}
+
+	for y := 0; y < len(maze); y++ {
+		for x := 0; x < len(maze[0]); x++ {
+			if terrainCost[maze[y][x]] == math.Inf(1) {
 				continue
 			}
 
 			totalCost := 0.0
-			valid := true
 			for _, hero := range heroes {
-				distances := bfs(maze, hero)
-				cost := distances[y][x]
-				if math.IsInf(cost, 1) {
-					valid = false
+				path := findPath(maze, hero, Point{x, y})
+				if path == nil {
+					totalCost = math.Inf(1)
 					break
 				}
-				totalCost += cost
+				for _, p := range path {
+					totalCost += terrainCost[maze[p.Y][p.X]]
+				}
 			}
 
-			if valid && totalCost < minTotalCost {
-				minTotalCost = totalCost
+			if totalCost < minCost {
+				minCost = totalCost
 				bestPoint = Point{x, y}
 			}
 		}
@@ -128,88 +134,85 @@ func findOptimalMeetingPoint(maze [][]rune, heroes []Point) Point {
 	return bestPoint
 }
 
-func findPath(maze [][]rune, start, target Point) []Point {
-	path := []Point{}
-	distances := bfs(maze, start)
-	current := target
-
-	if math.IsInf(distances[current.Y][current.X], 1) {
-		return path
-	}
-	directions := []Point{{0, 1}, {1, 0}, {0, -1}, {-1, 0}}
-
-	for current != start {
-		path = append([]Point{current}, path...)
-		bestNext := current
-		bestCost := distances[current.Y][current.X]
-
-		for _, dir := range directions {
-			next := Point{current.X + dir.X, current.Y + dir.Y}
-			if isValid(next, maze) && distances[next.Y][next.X] < bestCost {
-				bestNext = next
-				bestCost = distances[next.Y][next.X]
-			}
-		}
-
-		if bestNext == current {
-			break
-		}
-		current = bestNext
-	}
-
-	path = append([]Point{start}, path...)
-	return path
+type Item struct {
+	point Point
+	cost  float64
+	path  []Point
+	index int
 }
 
-func bfs(maze [][]rune, start Point) [][]float64 {
-	height, width := len(maze), len(maze[0])
-	directions := []Point{{0, 1}, {1, 0}, {0, -1}, {-1, 0}}
-	distances := make([][]float64, height)
-	for y := range distances {
-		distances[y] = make([]float64, width)
-		for x := range distances[y] {
-			distances[y][x] = math.Inf(1)
-		}
-	}
-	distances[start.Y][start.X] = 0
+type PriorityQueue []*Item
 
-	queue := []Point{start}
-
-	for len(queue) > 0 {
-		current := queue[0]
-		queue = queue[1:]
-
-		for _, dir := range directions {
-			next := Point{current.X + dir.X, current.Y + dir.Y}
-
-			if isValid(next, maze) {
-				newCost := distances[current.Y][current.X] + terrainCost[maze[next.Y][next.X]]
-				if newCost < distances[next.Y][next.X] {
-					distances[next.Y][next.X] = newCost
-					queue = append(queue, next)
-				}
-			}
+func (pq PriorityQueue) Len() int           { return len(pq) }
+func (pq PriorityQueue) Less(i, j int) bool { return pq[i].cost < pq[j].cost }
+func (pq PriorityQueue) Swap(i, j int)      { pq[i], pq[j] = pq[j], pq[i]; pq[i].index, pq[j].index = i, j }
+func (pq *PriorityQueue) Push(x interface{}) {
+	n := len(*pq)
+	item := x.(*Item)
+	item.index = n
+	*pq = append(*pq, item)
+}
+func (pq *PriorityQueue) Pop() interface{} {
+	old := *pq
+	n := len(old)
+	item := old[n-1]
+	*pq = old[0 : n-1]
+	return item
+}
+func printMazeWithPaths(maze [][]rune, heroes []Point, paths [][]Point) {
+	pathMap := make(map[Point]bool)
+	for _, path := range paths {
+		for _, p := range path {
+			pathMap[p] = true
 		}
 	}
 
-	return distances
-}
-
-func isValid(p Point, maze [][]rune) bool {
-	return p.Y >= 0 && p.Y < len(maze) && p.X >= 0 && p.X < len(maze[0]) && terrainCost[maze[p.Y][p.X]] != math.Inf(1)
-}
-
-func printMazeWithPaths(maze [][]rune, heroes []Point) {
-	for y := 0; y < len(maze); y++ {
-		for x := 0; x < len(maze[y]); x++ {
-			cell := maze[y][x]
-			for i, hero := range heroes {
-				if hero.X == x && hero.Y == y {
-					cell = rune('1' + i)
-				}
+	for y, row := range maze {
+		for x, cell := range row {
+			p := Point{x, y}
+			if pathMap[p] {
+				fmt.Print("\033[41m") // Красный фон для пути
 			}
-			fmt.Print(terrainColor[cell], string(cell), terrainColor['0'])
+			fmt.Print(terrainColor[cell], string(cell), "\033[0m")
 		}
 		fmt.Println()
 	}
+}
+
+func findPath(maze [][]rune, start, end Point) []Point {
+	dx := []int{0, 0, -1, 1}
+	dy := []int{-1, 1, 0, 0}
+
+	pq := &PriorityQueue{}
+	heap.Init(pq)
+	heap.Push(pq, &Item{start, 0, []Point{start}, 0})
+
+	visited := make(map[Point]bool)
+
+	for pq.Len() > 0 {
+		current := heap.Pop(pq).(*Item)
+
+		if current.point == end {
+			return current.path
+		}
+
+		if visited[current.point] {
+			continue
+		}
+		visited[current.point] = true
+
+		for i := 0; i < 4; i++ {
+			nx, ny := current.point.X+dx[i], current.point.Y+dy[i]
+			neighbor := Point{nx, ny}
+
+			if isValid(neighbor, maze) && !visited[neighbor] {
+				newCost := current.cost + terrainCost[maze[ny][nx]]
+				newPath := append([]Point(nil), current.path...)
+				newPath = append(newPath, neighbor)
+				heap.Push(pq, &Item{neighbor, newCost, newPath, 0})
+			}
+		}
+	}
+
+	return nil
 }
